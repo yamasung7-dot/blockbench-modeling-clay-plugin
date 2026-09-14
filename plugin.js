@@ -1,11 +1,55 @@
 /**
- * BlockBench Modeling Clay Plugin
+ * BlockBench Modeling Clay Plugin - Android Optimized
  * Applies a soft, squishy modeling clay aesthetic to 3D models
+ * Enhanced for touch devices and mobile Android compatibility
  */
 
 (function() {
   const id = 'modeling_clay_plugin';
   const name = 'Modeling Clay';
+  const isAndroid = /android/i.test(navigator.userAgent);
+  
+  // Touch event helpers for Android
+  const TouchHandler = {
+    isTouchDevice: () => isAndroid || ('ontouchstart' in window),
+    
+    // Gesture detection
+    touches: [],
+    startDistance: 0,
+    
+    detectPinch: (event) => {
+      if (event.touches.length === 2) {
+        const touch1 = event.touches[0];
+        const touch2 = event.touches[1];
+        const distance = Math.hypot(
+          touch1.clientX - touch2.clientX,
+          touch1.clientY - touch2.clientY
+        );
+        
+        if (TouchHandler.startDistance === 0) {
+          TouchHandler.startDistance = distance;
+        }
+        
+        return {
+          scale: distance / TouchHandler.startDistance,
+          distance: distance
+        };
+      }
+      return null;
+    },
+    
+    detectSwipe: (startX, startY, endX, endY) => {
+      const diffX = endX - startX;
+      const diffY = endY - startY;
+      const threshold = 50;
+      
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        return diffX > threshold ? 'right' : diffX < -threshold ? 'left' : null;
+      } else {
+        return diffY > threshold ? 'down' : diffY < -threshold ? 'up' : null;
+      }
+    }
+  };
   
   // Create the custom shader for modeling clay effect
   const clayShader = {
@@ -56,10 +100,11 @@
     name: name,
     icon: 'fas fa-cube',
     author: 'BlockBench Community',
-    description: 'Transform your models into beautiful modeling clay sculptures',
+    description: 'Transform your models into beautiful modeling clay sculptures (Android Optimized)',
     
     onload() {
       console.log('Modeling Clay Plugin loaded');
+      console.log('Android optimized mode:', isAndroid);
       
       // Register the clay material
       this.registerClay();
@@ -80,6 +125,39 @@
         icon: 'fas fa-sliders-h',
         click: () => this.openSettings()
       }, 'filter');
+      
+      // Register long-press handler for quick settings on Android
+      if (TouchHandler.isTouchDevice()) {
+        this.registerTouchHandlers();
+      }
+    },
+    
+    registerTouchHandlers() {
+      // Long-press on canvas to open quick settings
+      let touchStartTime = 0;
+      let touchStartX = 0;
+      let touchStartY = 0;
+      
+      document.addEventListener('touchstart', (e) => {
+        touchStartTime = Date.now();
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      });
+      
+      document.addEventListener('touchend', (e) => {
+        const touchDuration = Date.now() - touchStartTime;
+        const touchDistance = Math.hypot(
+          e.changedTouches[0].clientX - touchStartX,
+          e.changedTouches[0].clientY - touchStartY
+        );
+        
+        // Long-press: 500ms without significant movement
+        if (touchDuration > 500 && touchDistance < 50) {
+          if (Outliner.selected.length > 0) {
+            this.openSettings();
+          }
+        }
+      });
     },
     
     registerClay() {
@@ -123,7 +201,10 @@
     },
     
     openSettings() {
-      new Dialog({
+      const isMobile = TouchHandler.isTouchDevice();
+      
+      // Create mobile-optimized dialog
+      const dialog = new Dialog({
         id: 'clay_settings_dialog',
         title: 'Modeling Clay Settings',
         form: {
@@ -149,7 +230,7 @@
             value: 1.2
           },
           smoothness: {
-            label: 'Smoothness (Geometry)',
+            label: 'Smoothness',
             type: 'select',
             options: {
               'low': 'Lumpy Clay',
@@ -162,7 +243,63 @@
         onConfirm: (result) => {
           this.applySettings(result);
         }
-      }).show();
+      });
+      
+      // Apply mobile-friendly styling
+      if (isMobile) {
+        this.optimizeDialogForMobile(dialog);
+      }
+      
+      dialog.show();
+    },
+    
+    optimizeDialogForMobile(dialog) {
+      // Increase touch target sizes
+      const style = document.createElement('style');
+      style.textContent = `
+        #clay_settings_dialog .dialog-form input[type="range"] {
+          width: 100%;
+          height: 50px;
+          cursor: pointer;
+          -webkit-appearance: slider-horizontal;
+        }
+        
+        #clay_settings_dialog .dialog-form input[type="color"] {
+          width: 100%;
+          height: 60px;
+          cursor: pointer;
+          border-radius: 8px;
+        }
+        
+        #clay_settings_dialog .dialog-form select {
+          width: 100%;
+          height: 50px;
+          font-size: 16px;
+          padding: 10px;
+          border-radius: 8px;
+        }
+        
+        #clay_settings_dialog button {
+          min-height: 50px;
+          min-width: 100px;
+          font-size: 16px;
+          padding: 15px 25px;
+          border-radius: 8px;
+          margin: 10px;
+        }
+        
+        #clay_settings_dialog .dialog-form label {
+          font-size: 14px;
+          margin: 15px 0 10px 0;
+          display: block;
+        }
+        
+        #clay_settings_dialog {
+          max-width: 95vw;
+          padding: 20px;
+        }
+      `;
+      document.head.appendChild(style);
     },
     
     applySettings(settings) {
