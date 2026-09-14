@@ -1,0 +1,15 @@
+{
+  "name": "Modeling Clay",
+  "description": "Transform your models into beautiful modeling clay sculptures with dynamic pixelation based on camera zoom level. Android optimized.",
+  "icon": "icon.png",
+  "author": "BlockBench Community",
+  "version": "1.0.0",
+  "min_version": "4.0.0",
+  "variant": "desktop",
+  "files": [
+    "plugin.js"
+  ],
+  "repository": "https://github.com/yamasung7-dot/blockbench-modeling-clay-plugin",
+  "issue_tracker": "https://github.com/yamasung7-dot/blockbench-modeling-clay-plugin/issues",
+  "donation": "https://github.com/sponsors/yamasung7-dot"
+}
