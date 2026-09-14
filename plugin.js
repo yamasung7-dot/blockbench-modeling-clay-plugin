@@ -2,7 +2,7 @@
  * BlockBench Modeling Clay Plugin - Android Optimized with Pixelation Effect
  * Applies a soft, squishy modeling clay aesthetic to 3D models
  * Enhanced for touch devices and mobile Android compatibility
- * Features dynamic pixelation based on zoom level
+ * Features dynamic pixelation based on zoom level with custom icons
  */
 
 (function() {
@@ -136,6 +136,34 @@
     }
   };
   
+  // Custom SVG Icons
+  const Icons = {
+    // Clay icon - looks like a sculpted blob
+    clay: `<svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+    </svg>`,
+    
+    // Settings icon - gear with paint
+    settings: `<svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.64l-1.92-3.32c-.12-.22-.38-.3-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.5-.41h-3.84c-.26 0-.46.17-.49.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.09-.47 0-.59.22L2.74 8.87c-.12.22-.07.49.12.64l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.64l1.92 3.32c.12.22.37.3.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.25.41.51.41h3.84c.26 0 .46-.17.49-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.09.47 0 .59-.22l1.92-3.32c.12-.22.07-.49-.12-.64l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+    </svg>`,
+    
+    // Pixelation icon - grid/mosaic pattern
+    pixelation: `<svg viewBox="0 0 24 24" fill="currentColor">
+      <rect x="2" y="2" width="4" height="4" fill="currentColor"/>
+      <rect x="8" y="2" width="4" height="4" fill="currentColor"/>
+      <rect x="14" y="2" width="4" height="4" fill="currentColor"/>
+      <rect x="2" y="8" width="4" height="4" fill="currentColor"/>
+      <rect x="8" y="8" width="4" height="4" fill="currentColor"/>
+      <rect x="14" y="8" width="4" height="4" fill="currentColor"/>
+      <rect x="2" y="14" width="4" height="4" fill="currentColor"/>
+      <rect x="8" y="14" width="4" height="4" fill="currentColor"/>
+      <rect x="14" y="14" width="4" height="4" fill="currentColor"/>
+      <rect x="20" y="2" width="2" height="20" fill="currentColor"/>
+      <rect x="2" y="20" width="20" height="2" fill="currentColor"/>
+    </svg>`
+  };
+  
   // Create the custom shader for modeling clay effect
   const clayShader = {
     name: 'Modeling Clay',
@@ -192,6 +220,9 @@
       console.log('Android optimized mode:', isAndroid);
       console.log('Pixelation effect enabled');
       
+      // Inject custom icon styles
+      this.injectIconStyles();
+      
       // Register the clay material
       this.registerClay();
       
@@ -232,6 +263,45 @@
       }
     },
     
+    injectIconStyles() {
+      const style = document.createElement('style');
+      style.textContent = `
+        .clay-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 1em;
+          height: 1em;
+          font-size: inherit;
+          color: inherit;
+        }
+        
+        .clay-icon svg {
+          width: 100%;
+          height: 100%;
+          fill: currentColor;
+        }
+        
+        #btn_apply_clay .clay-icon {
+          color: #c9886e;
+        }
+        
+        #btn_clay_settings .clay-icon {
+          color: #8b7355;
+        }
+        
+        #btn_toggle_pixelation .clay-icon {
+          color: #d4a574;
+        }
+        
+        #btn_toggle_pixelation.enabled .clay-icon {
+          color: #4a90e2;
+          filter: drop-shadow(0 0 3px rgba(74, 144, 226, 0.5));
+        }
+      `;
+      document.head.appendChild(style);
+    },
+    
     createToolbarButtons() {
       // Create a container for clay buttons
       const clayContainer = document.createElement('div');
@@ -249,7 +319,7 @@
       applyClayBtn.id = 'btn_apply_clay';
       applyClayBtn.className = 'toolbar-button';
       applyClayBtn.title = 'Apply Clay Material';
-      applyClayBtn.innerHTML = '<i class="fas fa-palette"></i>';
+      applyClayBtn.innerHTML = `<span class="clay-icon">${Icons.clay}</span>`;
       applyClayBtn.style.cssText = `
         padding: 8px 12px;
         background: #f0f0f0;
@@ -258,9 +328,12 @@
         cursor: pointer;
         font-size: 16px;
         transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       `;
       applyClayBtn.onmouseover = () => {
-        applyClayBtn.style.background = '#e0e0e0';
+        applyClayBtn.style.background = '#e8d4c4';
       };
       applyClayBtn.onmouseout = () => {
         applyClayBtn.style.background = '#f0f0f0';
@@ -272,7 +345,7 @@
       settingsBtn.id = 'btn_clay_settings';
       settingsBtn.className = 'toolbar-button';
       settingsBtn.title = 'Clay Settings';
-      settingsBtn.innerHTML = '<i class="fas fa-sliders-h"></i>';
+      settingsBtn.innerHTML = `<span class="clay-icon">${Icons.settings}</span>`;
       settingsBtn.style.cssText = `
         padding: 8px 12px;
         background: #f0f0f0;
@@ -281,9 +354,12 @@
         cursor: pointer;
         font-size: 16px;
         transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       `;
       settingsBtn.onmouseover = () => {
-        settingsBtn.style.background = '#e0e0e0';
+        settingsBtn.style.background = '#e8d4c4';
       };
       settingsBtn.onmouseout = () => {
         settingsBtn.style.background = '#f0f0f0';
@@ -295,7 +371,7 @@
       pixelationBtn.id = 'btn_toggle_pixelation';
       pixelationBtn.className = 'toolbar-button';
       pixelationBtn.title = 'Toggle Pixelation';
-      pixelationBtn.innerHTML = '<i class="fas fa-th"></i>';
+      pixelationBtn.innerHTML = `<span class="clay-icon">${Icons.pixelation}</span>`;
       pixelationBtn.style.cssText = `
         padding: 8px 12px;
         background: #f0f0f0;
@@ -304,21 +380,33 @@
         cursor: pointer;
         font-size: 16px;
         transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       `;
       pixelationBtn.onmouseover = () => {
-        pixelationBtn.style.background = '#e0e0e0';
+        pixelationBtn.style.background = PixelationManager.enabled ? '#c5deff' : '#e8d4c4';
       };
       pixelationBtn.onmouseout = () => {
-        pixelationBtn.style.background = '#f0f0f0';
+        pixelationBtn.style.background = PixelationManager.enabled ? '#d4e8ff' : '#f0f0f0';
       };
       pixelationBtn.onclick = () => {
         this.togglePixelation();
         // Update button appearance
-        pixelationBtn.style.background = PixelationManager.enabled ? '#d4e8ff' : '#f0f0f0';
+        if (PixelationManager.enabled) {
+          pixelationBtn.classList.add('enabled');
+          pixelationBtn.style.background = '#d4e8ff';
+        } else {
+          pixelationBtn.classList.remove('enabled');
+          pixelationBtn.style.background = '#f0f0f0';
+        }
       };
       
-      // Initialize pixelation button color
-      pixelationBtn.style.background = PixelationManager.enabled ? '#d4e8ff' : '#f0f0f0';
+      // Initialize pixelation button
+      if (PixelationManager.enabled) {
+        pixelationBtn.classList.add('enabled');
+        pixelationBtn.style.background = '#d4e8ff';
+      }
       
       clayContainer.appendChild(applyClayBtn);
       clayContainer.appendChild(settingsBtn);
@@ -438,7 +526,13 @@
       
       // Update button color
       if (this.toolbarButtons && this.toolbarButtons.pixelation) {
-        this.toolbarButtons.pixelation.style.background = PixelationManager.enabled ? '#d4e8ff' : '#f0f0f0';
+        if (PixelationManager.enabled) {
+          this.toolbarButtons.pixelation.classList.add('enabled');
+          this.toolbarButtons.pixelation.style.background = '#d4e8ff';
+        } else {
+          this.toolbarButtons.pixelation.classList.remove('enabled');
+          this.toolbarButtons.pixelation.style.background = '#f0f0f0';
+        }
       }
       
       Canvas.updateAllFaces();
@@ -572,7 +666,13 @@
         PixelationManager.enabled = settings.pixelation_enabled;
         // Update button color
         if (this.toolbarButtons && this.toolbarButtons.pixelation) {
-          this.toolbarButtons.pixelation.style.background = PixelationManager.enabled ? '#d4e8ff' : '#f0f0f0';
+          if (PixelationManager.enabled) {
+            this.toolbarButtons.pixelation.classList.add('enabled');
+            this.toolbarButtons.pixelation.style.background = '#d4e8ff';
+          } else {
+            this.toolbarButtons.pixelation.classList.remove('enabled');
+            this.toolbarButtons.pixelation.style.background = '#f0f0f0';
+          }
         }
       }
       if (settings.pixel_zoom_sensitivity !== undefined) {
