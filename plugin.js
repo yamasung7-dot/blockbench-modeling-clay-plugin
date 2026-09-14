@@ -1,7 +1,8 @@
 /**
- * BlockBench Modeling Clay Plugin - Android Optimized
+ * BlockBench Modeling Clay Plugin - Android Optimized with Pixelation Effect
  * Applies a soft, squishy modeling clay aesthetic to 3D models
  * Enhanced for touch devices and mobile Android compatibility
+ * Features dynamic pixelation based on zoom level
  */
 
 (function() {
@@ -47,6 +48,90 @@
         return diffX > threshold ? 'right' : diffX < -threshold ? 'left' : null;
       } else {
         return diffY > threshold ? 'down' : diffY < -threshold ? 'up' : null;
+      }
+    }
+  };
+  
+  // Pixelation effect manager
+  const PixelationManager = {
+    enabled: true,
+    basePixelSize: 1.0, // Default pixel size
+    minPixelSize: 0.5, // Minimum (zoomed in)
+    maxPixelSize: 4.0, // Maximum (zoomed out)
+    cameraDistance: 0,
+    lastDistance: 0,
+    
+    // Calculate pixel size based on camera distance
+    calculatePixelSize: (camera) => {
+      if (!camera) return PixelationManager.basePixelSize;
+      
+      const distance = camera.position.length();
+      PixelationManager.cameraDistance = distance;
+      
+      // Normalize distance: closer = smaller pixels, farther = larger pixels
+      const minDistance = 10;
+      const maxDistance = 100;
+      const normalizedDistance = Math.max(minDistance, Math.min(maxDistance, distance));
+      
+      // Interpolate pixel size based on zoom
+      const ratio = (normalizedDistance - minDistance) / (maxDistance - minDistance);
+      const pixelSize = PixelationManager.minPixelSize + (PixelationManager.maxPixelSize - PixelationManager.minPixelSize) * ratio;
+      
+      return pixelSize;
+    },
+    
+    // Apply pixelation to material
+    applyPixelation: (material, pixelSize) => {
+      if (!material) return;
+      
+      // Store original values if not already stored
+      if (!material._originalOnBeforeCompile) {
+        material._originalOnBeforeCompile = material.onBeforeCompile;
+      }
+      
+      material.onBeforeCompile = (shader) => {
+        // Call original if it exists
+        if (material._originalOnBeforeCompile) {
+          material._originalOnBeforeCompile(shader);
+        }
+        
+        // Add pixelation to fragment shader
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <output_fragment>',
+          `
+            // Pixelation effect
+            vec3 pixelColor = gl_FragColor.rgb;
+            float pixelLevel = ${pixelSize.toFixed(2)};
+            
+            if (pixelLevel > 0.5) {
+              // Quantize colors for pixelated effect
+              pixelColor = floor(pixelColor * (8.0 / pixelLevel)) / (8.0 / pixelLevel);
+              gl_FragColor.rgb = mix(gl_FragColor.rgb, pixelColor, min(pixelLevel / 4.0, 1.0));
+            }
+            
+            #include <output_fragment>
+          `
+        );
+      };
+    },
+    
+    // Update all clay materials with current pixelation
+    updatePixelation: (camera) => {
+      if (!PixelationManager.enabled) return;
+      
+      const pixelSize = PixelationManager.calculatePixelSize(camera);
+      
+      // Update all selected elements
+      if (Outliner.selected && Outliner.selected.length > 0) {
+        Outliner.selected.forEach(element => {
+          if (element.meshes && element.meshes.length > 0) {
+            element.meshes.forEach(mesh => {
+              if (mesh.material) {
+                PixelationManager.applyPixelation(mesh.material, pixelSize);
+              }
+            });
+          }
+        });
       }
     }
   };
@@ -100,11 +185,12 @@
     name: name,
     icon: 'fas fa-cube',
     author: 'BlockBench Community',
-    description: 'Transform your models into beautiful modeling clay sculptures (Android Optimized)',
+    description: 'Transform your models into beautiful modeling clay sculptures with dynamic pixelation (Android Optimized)',
     
     onload() {
       console.log('Modeling Clay Plugin loaded');
       console.log('Android optimized mode:', isAndroid);
+      console.log('Pixelation effect enabled');
       
       // Register the clay material
       this.registerClay();
@@ -126,10 +212,34 @@
         click: () => this.openSettings()
       }, 'filter');
       
+      MenuBar.addAction({
+        id: 'toggle_pixelation',
+        name: 'Toggle Pixelation Effect',
+        description: 'Enable/disable dynamic pixelation based on zoom',
+        icon: 'fas fa-th',
+        click: () => this.togglePixelation()
+      }, 'filter');
+      
+      // Register animation loop for pixelation updates
+      this.registerAnimationLoop();
+      
       // Register long-press handler for quick settings on Android
       if (TouchHandler.isTouchDevice()) {
         this.registerTouchHandlers();
       }
+    },
+    
+    registerAnimationLoop() {
+      // Update pixelation every frame based on camera distance
+      const self = this;
+      const originalRender = Canvas.render;
+      
+      Canvas.render = function() {
+        if (PixelationManager.enabled && Canvas.camera) {
+          PixelationManager.updatePixelation(Canvas.camera);
+        }
+        return originalRender.call(this);
+      };
     },
     
     registerTouchHandlers() {
@@ -190,6 +300,12 @@
                 mesh.material.roughness = 0.7;
                 mesh.material.metallic = 0;
                 mesh.material.envMapIntensity = 0.3;
+                
+                // Apply pixelation if enabled
+                if (PixelationManager.enabled) {
+                  const pixelSize = PixelationManager.calculatePixelSize(Canvas.camera);
+                  PixelationManager.applyPixelation(mesh.material, pixelSize);
+                }
               }
             });
           }
@@ -197,7 +313,14 @@
       });
       
       Canvas.updateAllFaces();
-      Blockbench.notification('success', 'Clay material applied!');
+      Blockbench.notification('success', 'Clay material applied with pixelation effect!');
+    },
+    
+    togglePixelation() {
+      PixelationManager.enabled = !PixelationManager.enabled;
+      const status = PixelationManager.enabled ? 'enabled' : 'disabled';
+      Blockbench.notification('success', `Pixelation effect ${status}`);
+      Canvas.updateAllFaces();
     },
     
     openSettings() {
@@ -238,6 +361,19 @@
               'high': 'Smooth Clay'
             },
             value: 'medium'
+          },
+          pixelation_enabled: {
+            label: 'Enable Pixelation',
+            type: 'checkbox',
+            value: PixelationManager.enabled
+          },
+          pixel_zoom_sensitivity: {
+            label: 'Pixelation Zoom Sensitivity',
+            type: 'range',
+            min: 0.5,
+            max: 4.0,
+            step: 0.5,
+            value: PixelationManager.maxPixelSize
           }
         },
         onConfirm: (result) => {
@@ -279,6 +415,13 @@
           border-radius: 8px;
         }
         
+        #clay_settings_dialog .dialog-form input[type="checkbox"] {
+          width: 30px;
+          height: 30px;
+          cursor: pointer;
+          margin-right: 10px;
+        }
+        
         #clay_settings_dialog button {
           min-height: 50px;
           min-width: 100px;
@@ -303,6 +446,14 @@
     },
     
     applySettings(settings) {
+      // Update pixelation settings
+      if (settings.pixelation_enabled !== undefined) {
+        PixelationManager.enabled = settings.pixelation_enabled;
+      }
+      if (settings.pixel_zoom_sensitivity !== undefined) {
+        PixelationManager.maxPixelSize = settings.pixel_zoom_sensitivity;
+      }
+      
       Outliner.selected.forEach(element => {
         if (element.meshes) {
           element.meshes.forEach(mesh => {
@@ -316,6 +467,12 @@
               // Update saturation through material properties
               const saturation = settings.saturation;
               mesh.material.colorSpace = THREE.SRGBColorSpace;
+              
+              // Apply pixelation
+              if (PixelationManager.enabled) {
+                const pixelSize = PixelationManager.calculatePixelSize(Canvas.camera);
+                PixelationManager.applyPixelation(mesh.material, pixelSize);
+              }
             }
           });
         }
