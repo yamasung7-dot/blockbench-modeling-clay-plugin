@@ -195,7 +195,10 @@
       // Register the clay material
       this.registerClay();
       
-      // Add menu items
+      // Add toolbar buttons
+      this.createToolbarButtons();
+      
+      // Add menu items (kept for compatibility)
       MenuBar.addAction({
         id: 'apply_clay_material',
         name: 'Apply Clay Material',
@@ -227,6 +230,118 @@
       if (TouchHandler.isTouchDevice()) {
         this.registerTouchHandlers();
       }
+    },
+    
+    createToolbarButtons() {
+      // Create a container for clay buttons
+      const clayContainer = document.createElement('div');
+      clayContainer.id = 'clay_toolbar_container';
+      clayContainer.className = 'toolbar-buttons-group';
+      clayContainer.style.cssText = `
+        display: inline-flex;
+        gap: 5px;
+        padding: 0 10px;
+        border-right: 1px solid #ccc;
+      `;
+      
+      // Apply Clay Material Button
+      const applyClayBtn = document.createElement('button');
+      applyClayBtn.id = 'btn_apply_clay';
+      applyClayBtn.className = 'toolbar-button';
+      applyClayBtn.title = 'Apply Clay Material';
+      applyClayBtn.innerHTML = '<i class="fas fa-palette"></i>';
+      applyClayBtn.style.cssText = `
+        padding: 8px 12px;
+        background: #f0f0f0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: all 0.2s;
+      `;
+      applyClayBtn.onmouseover = () => {
+        applyClayBtn.style.background = '#e0e0e0';
+      };
+      applyClayBtn.onmouseout = () => {
+        applyClayBtn.style.background = '#f0f0f0';
+      };
+      applyClayBtn.onclick = () => this.applyClay();
+      
+      // Clay Settings Button
+      const settingsBtn = document.createElement('button');
+      settingsBtn.id = 'btn_clay_settings';
+      settingsBtn.className = 'toolbar-button';
+      settingsBtn.title = 'Clay Settings';
+      settingsBtn.innerHTML = '<i class="fas fa-sliders-h"></i>';
+      settingsBtn.style.cssText = `
+        padding: 8px 12px;
+        background: #f0f0f0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: all 0.2s;
+      `;
+      settingsBtn.onmouseover = () => {
+        settingsBtn.style.background = '#e0e0e0';
+      };
+      settingsBtn.onmouseout = () => {
+        settingsBtn.style.background = '#f0f0f0';
+      };
+      settingsBtn.onclick = () => this.openSettings();
+      
+      // Toggle Pixelation Button
+      const pixelationBtn = document.createElement('button');
+      pixelationBtn.id = 'btn_toggle_pixelation';
+      pixelationBtn.className = 'toolbar-button';
+      pixelationBtn.title = 'Toggle Pixelation';
+      pixelationBtn.innerHTML = '<i class="fas fa-th"></i>';
+      pixelationBtn.style.cssText = `
+        padding: 8px 12px;
+        background: #f0f0f0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: all 0.2s;
+      `;
+      pixelationBtn.onmouseover = () => {
+        pixelationBtn.style.background = '#e0e0e0';
+      };
+      pixelationBtn.onmouseout = () => {
+        pixelationBtn.style.background = '#f0f0f0';
+      };
+      pixelationBtn.onclick = () => {
+        this.togglePixelation();
+        // Update button appearance
+        pixelationBtn.style.background = PixelationManager.enabled ? '#d4e8ff' : '#f0f0f0';
+      };
+      
+      // Initialize pixelation button color
+      pixelationBtn.style.background = PixelationManager.enabled ? '#d4e8ff' : '#f0f0f0';
+      
+      clayContainer.appendChild(applyClayBtn);
+      clayContainer.appendChild(settingsBtn);
+      clayContainer.appendChild(pixelationBtn);
+      
+      // Find the toolbar and add buttons
+      const toolbar = document.querySelector('#top_menu_bar') || 
+                     document.querySelector('.top-menu') ||
+                     document.querySelector('[class*="toolbar"]');
+      
+      if (toolbar) {
+        toolbar.appendChild(clayContainer);
+      } else {
+        // Fallback: add to body if toolbar not found
+        document.body.appendChild(clayContainer);
+      }
+      
+      // Store button references for later updates
+      this.toolbarButtons = {
+        applyClay: applyClayBtn,
+        settings: settingsBtn,
+        pixelation: pixelationBtn
+      };
     },
     
     registerAnimationLoop() {
@@ -320,6 +435,12 @@
       PixelationManager.enabled = !PixelationManager.enabled;
       const status = PixelationManager.enabled ? 'enabled' : 'disabled';
       Blockbench.notification('success', `Pixelation effect ${status}`);
+      
+      // Update button color
+      if (this.toolbarButtons && this.toolbarButtons.pixelation) {
+        this.toolbarButtons.pixelation.style.background = PixelationManager.enabled ? '#d4e8ff' : '#f0f0f0';
+      }
+      
       Canvas.updateAllFaces();
     },
     
@@ -449,6 +570,10 @@
       // Update pixelation settings
       if (settings.pixelation_enabled !== undefined) {
         PixelationManager.enabled = settings.pixelation_enabled;
+        // Update button color
+        if (this.toolbarButtons && this.toolbarButtons.pixelation) {
+          this.toolbarButtons.pixelation.style.background = PixelationManager.enabled ? '#d4e8ff' : '#f0f0f0';
+        }
       }
       if (settings.pixel_zoom_sensitivity !== undefined) {
         PixelationManager.maxPixelSize = settings.pixel_zoom_sensitivity;
@@ -484,6 +609,11 @@
     
     onunload() {
       console.log('Modeling Clay Plugin unloaded');
+      // Remove toolbar container
+      const container = document.getElementById('clay_toolbar_container');
+      if (container) {
+        container.remove();
+      }
     }
   };
   
