@@ -7,7 +7,7 @@
   "min_version": "4.0.0",
   "variant": "desktop",
   "files": [
-    "plugin.js"
+    "modeling_clay_plugin.js"
   ],
   "repository": "https://github.com/yamasung7-dot/blockbench-modeling-clay-plugin",
   "issue_tracker": "https://github.com/yamasung7-dot/blockbench-modeling-clay-plugin/issues",
